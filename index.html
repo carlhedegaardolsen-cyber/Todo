@@ -1,1287 +1,557 @@
-import tkinter as tk
-from tkinter import ttk
-import json
-import os
-import sys
-import winreg
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Todo</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: white;
+    color: #222;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 40px 25px;
+}
+
+.date {
+    color: #999;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.tabs {
+    display: flex;
+    gap: 25px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 30px;
+}
+
+.tab {
+    border: none;
+    background: none;
+    padding: 12px 5px;
+    color: #999;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.tab.active {
+    color: #222;
+    border-bottom: 2px solid #222;
+}
+
+h1 {
+    font-size: 32px;
+    margin: 0 0 5px;
+}
+
+.subtitle {
+    color: #888;
+    margin-bottom: 25px;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input {
+    flex: 1;
+    padding: 13px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+button {
+    cursor: pointer;
+}
+
+.add {
+    background: #222;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0 22px;
+}
+
+.search {
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-weight: bold;
+    margin: 20px 0 8px;
+}
+
+.todo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.todo span {
+    flex: 1;
+}
+
+.todo button {
+    border: none;
+    background: none;
+    color: #999;
+}
+
+.completed {
+    color: #999;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    color: #999;
+    font-size: 13px;
+}
+
+.hidden {
+    display: none;
+}
+
+.fitness-entry {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="date" id="date"></div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('todos')">Todos</button>
+        <button class="tab" onclick="showTab('fitness')">Fitness</button>
+    </div>
+
+    <!-- TODOS -->
+
+    <div id="todosTab">
+
+        <h1>My Todos</h1>
+        <div class="subtitle">What needs to get done?</div>
+
+        <div class="input-row">
+            <input id="todoInput" placeholder="Add a task...">
+            <button class="add" onclick="addTodo()">Add</button>
+        </div>
+
+        <input
+            id="searchInput"
+            class="search"
+            placeholder="Search..."
+            oninput="renderTodos()"
+        >
+
+        <div class="section-title">Tasks</div>
+
+        <div id="todoList"></div>
+
+        <div class="section-title">Completed</div>
+
+        <div id="completedList"></div>
+
+        <div class="footer">
+            <span id="count"></span>
+            <button onclick="clearCompleted()">Clear completed</button>
+        </div>
+
+    </div>
 
 
-# ==========================================================
-# SETTINGS
-# ==========================================================
+    <!-- FITNESS -->
 
-APP_NAME = "My Todo"
+    <div id="fitnessTab" class="hidden">
 
-DATA_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "todos.json"
-)
+        <h1>Fitness</h1>
+        <div class="subtitle">Keep track of what you achieved.</div>
 
+        <div class="input-row">
+            <input id="fitnessInput" placeholder="e.g. Bench 60kg × 8">
+            <button class="add" onclick="addFitness()">Log</button>
+        </div>
 
-# ==========================================================
-# DATA
-# ==========================================================
+        <div id="fitnessList"></div>
 
-todos = []
-fitness_logs = []
+        <div class="footer">
+            <span id="fitnessCount"></span>
+        </div>
 
+    </div>
 
-def load_data():
-    global todos, fitness_logs
-
-    if not os.path.exists(DATA_FILE):
-        return
-
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-
-        # Support older versions
-        if isinstance(data, list):
-            todos = data
-            fitness_logs = []
-        else:
-            todos = data.get("todos", [])
-            fitness_logs = data.get("fitness_logs", [])
-
-    except (json.JSONDecodeError, OSError):
-        todos = []
-        fitness_logs = []
+</div>
 
 
-def save_data():
-    data = {
-        "todos": todos,
-        "fitness_logs": fitness_logs
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+
+const SUPABASE_URL = "https://irfxcecruqjtzrxyzmxk.supabase.com";
+
+const SUPABASE_KEY = "sb_publishable_FVuQJxc6wVNA9ZTP8rMeXA_vULIdzDx";
+
+const db = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+
+/* =========================================================
+   DATE
+   ========================================================= */
+
+document.getElementById("date").textContent =
+    new Date().toLocaleDateString(
+        "en-GB",
+        {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        }
+    );
+
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+function showTab(tab) {
+
+    document.getElementById("todosTab")
+        .classList.toggle("hidden", tab !== "todos");
+
+    document.getElementById("fitnessTab")
+        .classList.toggle("hidden", tab !== "fitness");
+
+    document.querySelectorAll(".tab").forEach(button => {
+        button.classList.remove("active");
+    });
+
+    event.target.classList.add("active");
+}
+
+
+/* =========================================================
+   TODOS
+   ========================================================= */
+
+async function loadTodos() {
+
+    const { data, error } = await db
+        .from("todos")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+    if (error) {
+        console.error(error);
+        return;
     }
 
-    try:
-        with open(DATA_FILE, "w", encoding="utf-8") as file:
-            json.dump(
-                data,
-                file,
-                indent=4,
-                ensure_ascii=False
-            )
-    except OSError:
-        pass
+    window.todos = data;
 
+    renderTodos();
+}
 
-# ==========================================================
-# DATE
-# ==========================================================
 
-def get_date():
-    return datetime.now().strftime(
-        "%A, %d %B %Y"
-    )
+function renderTodos() {
 
+    const list = document.getElementById("todoList");
+    const completed = document.getElementById("completedList");
 
-def get_short_date():
-    return datetime.now().strftime(
-        "%d/%m/%Y"
-    )
+    list.innerHTML = "";
+    completed.innerHTML = "";
 
+    const search =
+        document.getElementById("searchInput")
+        .value
+        .toLowerCase();
 
-# ==========================================================
-# TODO FUNCTIONS
-# ==========================================================
+    let activeCount = 0;
 
-def add_todo(event=None):
-
-    text = todo_entry.get().strip()
-
-    if not text:
-        return
-
-    todos.append({
-        "text": text,
-        "completed": False
-    })
-
-    todo_entry.delete(
-        0,
-        tk.END
-    )
-
-    save_data()
-    refresh_todos()
-
-    todo_entry.focus()
-
-
-def complete_selected(event=None):
-
-    selection = todo_list.curselection()
-
-    if not selection:
-        return
-
-    index = selection[0]
-
-    todos[index]["completed"] = True
-
-    save_data()
-    refresh_todos()
-
-
-def uncomplete_selected(event=None):
-
-    selection = completed_list.curselection()
-
-    if not selection:
-        return
-
-    index = selection[0]
-
-    completed_items = [
-        todo for todo in todos
-        if todo.get("completed", False)
-    ]
-
-    selected_todo = completed_items[index]
-
-    selected_todo["completed"] = False
-
-    save_data()
-    refresh_todos()
-
-
-def delete_selected(event=None):
-
-    # If an active todo is selected
-    selection = todo_list.curselection()
-
-    if selection:
-
-        index = selection[0]
-
-        todos.pop(index)
-
-        save_data()
-        refresh_todos()
-
-        return
-
-    # If a completed todo is selected
-    selection = completed_list.curselection()
-
-    if selection:
-
-        index = selection[0]
-
-        completed_items = [
-            todo for todo in todos
-            if todo.get("completed", False)
-        ]
-
-        selected_todo = completed_items[index]
-
-        todos.remove(selected_todo)
-
-        save_data()
-        refresh_todos()
-
-
-def clear_completed():
-
-    global todos
-
-    todos = [
-        todo
-        for todo in todos
-        if not todo.get("completed", False)
-    ]
-
-    save_data()
-    refresh_todos()
-
-
-# ==========================================================
-# EDIT TODO
-# ==========================================================
-
-def edit_selected(event=None):
-
-    selection = todo_list.curselection()
-
-    if not selection:
-        return
-
-    index = selection[0]
-
-    open_edit_window(index)
-
-
-def open_edit_window(index):
-
-    edit_window = tk.Toplevel(window)
-
-    edit_window.title(
-        "Edit Todo"
-    )
-
-    edit_window.geometry(
-        "430x170"
-    )
-
-    edit_window.configure(
-        bg="white"
-    )
-
-    edit_window.resizable(
-        False,
-        False
-    )
-
-    edit_window.transient(
-        window
-    )
-
-    edit_window.grab_set()
-
-    label = tk.Label(
-        edit_window,
-        text="Edit task",
-        font=("Segoe UI", 11),
-        bg="white",
-        fg="#333333"
-    )
-
-    label.pack(
-        pady=(22, 7)
-    )
-
-    edit_entry = tk.Entry(
-        edit_window,
-        font=("Segoe UI", 13),
-        relief="solid",
-        bd=1
-    )
-
-    edit_entry.pack(
-        fill="x",
-        padx=30,
-        ipady=5
-    )
-
-    edit_entry.insert(
-        0,
-        todos[index]["text"]
-    )
-
-    edit_entry.select_range(
-        0,
-        tk.END
-    )
-
-    edit_entry.focus()
-
-    def save_edit(event=None):
-
-        new_text = edit_entry.get().strip()
-
-        if new_text:
-
-            todos[index]["text"] = new_text
-
-            save_data()
-            refresh_todos()
-
-            edit_window.destroy()
-
-    edit_entry.bind(
-        "<Return>",
-        save_edit
-    )
-
-    save_button = tk.Button(
-        edit_window,
-        text="Save",
-        command=save_edit,
-        font=("Segoe UI", 10, "bold"),
-        bg="#222222",
-        fg="white",
-        activebackground="#444444",
-        activeforeground="white",
-        relief="flat",
-        padx=25,
-        pady=7
-    )
-
-    save_button.pack(
-        pady=15
-    )
-
-
-# ==========================================================
-# REFRESH TODO LISTS
-# ==========================================================
-
-def refresh_todos():
-
-    todo_list.delete(
-        0,
-        tk.END
-    )
-
-    completed_list.delete(
-        0,
-        tk.END
-    )
-
-    active_count = 0
-    completed_count = 0
-
-    # Active tasks
-    for todo in todos:
-
-        if not todo.get("completed", False):
-
-            todo_list.insert(
-                tk.END,
-                "○  " + todo.get("text", "")
-            )
-
-            active_count += 1
-
-    # Completed tasks
-    for todo in todos:
-
-        if todo.get("completed", False):
-
-            completed_list.insert(
-                tk.END,
-                "✓  " + todo.get("text", "")
-            )
-
-            completed_count += 1
-
-    # Counter
-    if active_count == 1:
-        task_count_label.config(
-            text="1 task remaining"
+    window.todos
+        .filter(todo =>
+            todo.text.toLowerCase().includes(search)
         )
-    else:
-        task_count_label.config(
-            text=f"{active_count} tasks remaining"
-        )
+        .forEach(todo => {
 
-    if completed_count == 1:
-        completed_count_label.config(
-            text="1 completed"
-        )
-    else:
-        completed_count_label.config(
-            text=f"{completed_count} completed"
-        )
+            const row = document.createElement("div");
+            row.className = "todo";
 
+            if (todo.completed) {
 
-# ==========================================================
-# SEARCH
-# ==========================================================
+                row.classList.add("completed");
 
-def search_todos(event=None):
+                row.innerHTML = `
+                    <span>✓ ${escapeHtml(todo.text)}</span>
+                    <button onclick="uncompleteTodo(${todo.id})">Undo</button>
+                    <button onclick="deleteTodo(${todo.id})">Delete</button>
+                `;
 
-    search_text = (
-        search_entry
-        .get()
-        .lower()
-        .strip()
-    )
+                completed.appendChild(row);
 
-    todo_list.delete(
-        0,
-        tk.END
-    )
+            } else {
 
-    completed_list.delete(
-        0,
-        tk.END
-    )
+                activeCount++;
 
-    for todo in todos:
+                row.innerHTML = `
+                    <span>○ ${escapeHtml(todo.text)}</span>
+                    <button onclick="completeTodo(${todo.id})">Done</button>
+                    <button onclick="deleteTodo(${todo.id})">Delete</button>
+                `;
 
-        text = todo.get(
-            "text",
-            ""
-        )
+                list.appendChild(row);
+            }
+        });
 
-        if search_text in text.lower():
+    document.getElementById("count").textContent =
+        activeCount + (activeCount === 1
+            ? " task remaining"
+            : " tasks remaining");
+}
 
-            if todo.get("completed", False):
 
-                completed_list.insert(
-                    tk.END,
-                    "✓  " + text
-                )
+async function addTodo() {
 
-            else:
+    const input = document.getElementById("todoInput");
 
-                todo_list.insert(
-                    tk.END,
-                    "○  " + text
-                )
+    const text = input.value.trim();
 
+    if (!text) return;
 
-def clear_search():
+    const { error } = await db
+        .from("todos")
+        .insert({
+            text: text,
+            completed: false
+        });
 
-    search_entry.delete(
-        0,
-        tk.END
-    )
+    if (error) {
+        console.error(error);
+        alert("Could not add todo.");
+        return;
+    }
 
-    refresh_todos()
+    input.value = "";
 
-    search_entry.focus()
+    await loadTodos();
+}
 
 
-# ==========================================================
-# FITNESS
-# ==========================================================
+async function completeTodo(id) {
 
-def add_fitness(event=None):
+    await db
+        .from("todos")
+        .update({ completed: true })
+        .eq("id", id);
 
-    text = fitness_entry.get().strip()
+    await loadTodos();
+}
 
-    if not text:
-        return
 
-    fitness_logs.append({
-        "date": get_short_date(),
-        "text": text
-    })
+async function uncompleteTodo(id) {
 
-    fitness_entry.delete(
-        0,
-        tk.END
-    )
+    await db
+        .from("todos")
+        .update({ completed: false })
+        .eq("id", id);
 
-    save_data()
-    refresh_fitness()
+    await loadTodos();
+}
 
-    fitness_entry.focus()
 
+async function deleteTodo(id) {
 
-def delete_fitness(event=None):
+    await db
+        .from("todos")
+        .delete()
+        .eq("id", id);
 
-    selection = fitness_list.curselection()
+    await loadTodos();
+}
 
-    if not selection:
-        return
 
-    displayed_index = selection[0]
+async function clearCompleted() {
 
-    actual_index = (
-        len(fitness_logs)
-        - 1
-        - displayed_index
-    )
+    await db
+        .from("todos")
+        .delete()
+        .eq("completed", true);
 
-    fitness_logs.pop(
-        actual_index
-    )
+    await loadTodos();
+}
 
-    save_data()
-    refresh_fitness()
 
+/* =========================================================
+   FITNESS
+   ========================================================= */
 
-def refresh_fitness():
+async function loadFitness() {
 
-    fitness_list.delete(
-        0,
-        tk.END
-    )
+    const { data, error } = await db
+        .from("fitness_logs")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    for log in reversed(fitness_logs):
+    if (error) {
+        console.error(error);
+        return;
+    }
 
-        display_text = (
-            log.get("date", "")
-            + "    "
-            + log.get("text", "")
-        )
+    window.fitnessLogs = data;
 
-        fitness_list.insert(
-            tk.END,
-            display_text
-        )
+    renderFitness();
+}
 
-    total = len(fitness_logs)
 
-    if total == 1:
+function renderFitness() {
 
-        fitness_count_label.config(
-            text="1 workout entry"
-        )
+    const list =
+        document.getElementById("fitnessList");
 
-    else:
+    list.innerHTML = "";
 
-        fitness_count_label.config(
-            text=f"{total} workout entries"
-        )
+    window.fitnessLogs.forEach(log => {
 
+        const row =
+            document.createElement("div");
 
-# ==========================================================
-# WINDOWS STARTUP
-# ==========================================================
+        row.className = "fitness-entry";
 
-def enable_startup():
+        row.innerHTML =
+            `${log.date} — ${escapeHtml(log.text)}
+             <button onclick="deleteFitness(${log.id})">
+             Delete
+             </button>`;
 
-    try:
+        list.appendChild(row);
+    });
 
-        script_path = os.path.abspath(
-            sys.argv[0]
-        )
+    document.getElementById("fitnessCount").textContent =
+        window.fitnessLogs.length +
+        (window.fitnessLogs.length === 1
+            ? " workout entry"
+            : " workout entries");
+}
 
-        python_exe = sys.executable.replace(
-            "python.exe",
-            "pythonw.exe"
-        )
 
-        command = (
-            f'"{python_exe}" '
-            f'"{script_path}"'
-        )
+async function addFitness() {
 
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Run",
-            0,
-            winreg.KEY_SET_VALUE
-        )
+    const input =
+        document.getElementById("fitnessInput");
 
-        winreg.SetValueEx(
-            key,
-            APP_NAME,
-            0,
-            winreg.REG_SZ,
-            command
-        )
+    const text = input.value.trim();
 
-        winreg.CloseKey(
-            key
-        )
+    if (!text) return;
 
-    except Exception:
-        pass
+    const { error } = await db
+        .from("fitness_logs")
+        .insert({
+            date: new Date().toLocaleDateString("en-GB"),
+            text: text
+        });
 
+    if (error) {
+        console.error(error);
+        alert("Could not save fitness entry.");
+        return;
+    }
 
-# ==========================================================
-# MAIN WINDOW
-# ==========================================================
+    input.value = "";
 
-load_data()
+    await loadFitness();
+}
 
-window = tk.Tk()
 
-window.title(
-    "My Todo"
-)
+async function deleteFitness(id) {
 
-window.geometry(
-    "680x760"
-)
+    await db
+        .from("fitness_logs")
+        .delete()
+        .eq("id", id);
 
-window.minsize(
-    580,
-    650
-)
+    await loadFitness();
+}
 
-window.configure(
-    bg="white"
-)
 
+/* =========================================================
+   SECURITY
+   ========================================================= */
 
-# ==========================================================
-# STYLE
-# ==========================================================
+function escapeHtml(text) {
 
-style = ttk.Style()
+    const div = document.createElement("div");
 
-try:
-    style.theme_use(
-        "clam"
-    )
-except:
-    pass
+    div.textContent = text;
 
+    return div.innerHTML;
+}
 
-style.configure(
-    "TNotebook",
-    background="white",
-    borderwidth=0
-)
 
-style.configure(
-    "TNotebook.Tab",
-    background="white",
-    foreground="#888888",
-    padding=(20, 10),
-    font=("Segoe UI", 10)
-)
+/* =========================================================
+   ENTER KEY
+   ========================================================= */
 
-style.map(
-    "TNotebook.Tab",
-    foreground=[
-        ("selected", "#222222")
-    ]
-)
+document.getElementById("todoInput")
+    .addEventListener("keydown", event => {
 
+        if (event.key === "Enter") {
+            addTodo();
+        }
 
-# ==========================================================
-# MAIN CONTAINER
-# ==========================================================
+    });
 
-main = tk.Frame(
-    window,
-    bg="white"
-)
 
-main.pack(
-    fill="both",
-    expand=True,
-    padx=45,
-    pady=35
-)
+document.getElementById("fitnessInput")
+    .addEventListener("keydown", event => {
 
+        if (event.key === "Enter") {
+            addFitness();
+        }
 
-# ==========================================================
-# DATE
-# ==========================================================
+    });
 
-date_label = tk.Label(
-    main,
-    text=get_date(),
-    font=("Segoe UI", 10),
-    bg="white",
-    fg="#999999"
-)
 
-date_label.pack(
-    anchor="w",
-    pady=(0, 12)
-)
+/* =========================================================
+   START
+   ========================================================= */
 
+window.todos = [];
 
-# ==========================================================
-# TABS
-# ==========================================================
+window.fitnessLogs = [];
 
-notebook = ttk.Notebook(
-    main
-)
+loadTodos();
 
-notebook.pack(
-    fill="both",
-    expand=True
-)
+loadFitness();
 
+</script>
 
-# ==========================================================
-# TODOS TAB
-# ==========================================================
-
-todo_tab = tk.Frame(
-    notebook,
-    bg="white"
-)
-
-notebook.add(
-    todo_tab,
-    text="Todos"
-)
-
-
-todo_container = tk.Frame(
-    todo_tab,
-    bg="white"
-)
-
-todo_container.pack(
-    fill="both",
-    expand=True,
-    padx=5,
-    pady=10
-)
-
-
-# ==========================================================
-# TODO TITLE
-# ==========================================================
-
-todo_title = tk.Label(
-    todo_container,
-    text="My Todos",
-    font=("Segoe UI", 28, "bold"),
-    bg="white",
-    fg="#171717"
-)
-
-todo_title.pack(
-    anchor="w",
-    pady=(0, 5)
-)
-
-
-todo_subtitle = tk.Label(
-    todo_container,
-    text="What needs to get done?",
-    font=("Segoe UI", 11),
-    bg="white",
-    fg="#888888"
-)
-
-todo_subtitle.pack(
-    anchor="w",
-    pady=(0, 22)
-)
-
-
-# ==========================================================
-# ADD TODO
-# ==========================================================
-
-todo_input_frame = tk.Frame(
-    todo_container,
-    bg="white"
-)
-
-todo_input_frame.pack(
-    fill="x",
-    pady=(0, 12)
-)
-
-
-todo_entry = tk.Entry(
-    todo_input_frame,
-    font=("Segoe UI", 14),
-    relief="solid",
-    bd=1
-)
-
-todo_entry.pack(
-    side="left",
-    fill="x",
-    expand=True,
-    ipady=10
-)
-
-
-add_todo_button = tk.Button(
-    todo_input_frame,
-    text="Add",
-    command=add_todo,
-    font=("Segoe UI", 11, "bold"),
-    bg="#222222",
-    fg="white",
-    activebackground="#444444",
-    activeforeground="white",
-    relief="flat",
-    padx=22,
-    pady=9
-)
-
-add_todo_button.pack(
-    side="left",
-    padx=(10, 0)
-)
-
-
-# ==========================================================
-# SEARCH
-# ==========================================================
-
-search_frame = tk.Frame(
-    todo_container,
-    bg="white"
-)
-
-search_frame.pack(
-    fill="x",
-    pady=(0, 12)
-)
-
-
-search_entry = tk.Entry(
-    search_frame,
-    font=("Segoe UI", 10),
-    relief="solid",
-    bd=1
-)
-
-search_entry.pack(
-    side="left",
-    fill="x",
-    expand=True,
-    ipady=6
-)
-
-
-search_button = tk.Button(
-    search_frame,
-    text="Search",
-    command=search_todos,
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#555555",
-    activebackground="#eeeeee",
-    relief="flat",
-    bd=0,
-    padx=10
-)
-
-search_button.pack(
-    side="left"
-)
-
-
-clear_search_button = tk.Button(
-    search_frame,
-    text="Clear",
-    command=clear_search,
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#999999",
-    activebackground="#eeeeee",
-    relief="flat",
-    bd=0
-)
-
-clear_search_button.pack(
-    side="left"
-)
-
-
-# ==========================================================
-# ACTIVE SECTION
-# ==========================================================
-
-active_label = tk.Label(
-    todo_container,
-    text="Tasks",
-    font=("Segoe UI", 13, "bold"),
-    bg="white",
-    fg="#333333"
-)
-
-active_label.pack(
-    anchor="w",
-    pady=(5, 5)
-)
-
-
-todo_list = tk.Listbox(
-    todo_container,
-    font=("Segoe UI", 13),
-    bg="white",
-    fg="#222222",
-    selectbackground="#eeeeee",
-    selectforeground="#222222",
-    highlightthickness=0,
-    relief="flat",
-    bd=0,
-    activestyle="none"
-)
-
-todo_list.pack(
-    fill="both",
-    expand=True
-)
-
-
-# ==========================================================
-# COMPLETED SECTION
-# ==========================================================
-
-completed_header = tk.Frame(
-    todo_container,
-    bg="white"
-)
-
-completed_header.pack(
-    fill="x",
-    pady=(20, 5)
-)
-
-
-completed_label = tk.Label(
-    completed_header,
-    text="Completed",
-    font=("Segoe UI", 13, "bold"),
-    bg="white",
-    fg="#777777"
-)
-
-completed_label.pack(
-    side="left"
-)
-
-
-completed_count_label = tk.Label(
-    completed_header,
-    text="0 completed",
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#aaaaaa"
-)
-
-completed_count_label.pack(
-    side="right"
-)
-
-
-completed_list = tk.Listbox(
-    todo_container,
-    font=("Segoe UI", 12),
-    bg="white",
-    fg="#999999",
-    selectbackground="#eeeeee",
-    selectforeground="#777777",
-    highlightthickness=0,
-    relief="flat",
-    bd=0,
-    activestyle="none",
-    height=5
-)
-
-completed_list.pack(
-    fill="x"
-)
-
-
-# ==========================================================
-# TODO FOOTER
-# ==========================================================
-
-todo_footer = tk.Frame(
-    todo_container,
-    bg="white"
-)
-
-todo_footer.pack(
-    fill="x",
-    pady=(12, 0)
-)
-
-
-task_count_label = tk.Label(
-    todo_footer,
-    text="0 tasks remaining",
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#999999"
-)
-
-task_count_label.pack(
-    side="left"
-)
-
-
-clear_completed_button = tk.Button(
-    todo_footer,
-    text="Clear completed",
-    command=clear_completed,
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#555555",
-    activebackground="#eeeeee",
-    relief="flat",
-    bd=0
-)
-
-clear_completed_button.pack(
-    side="right"
-)
-
-
-delete_button = tk.Button(
-    todo_footer,
-    text="Delete selected",
-    command=delete_selected,
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#555555",
-    activebackground="#eeeeee",
-    relief="flat",
-    bd=0
-)
-
-delete_button.pack(
-    side="right",
-    padx=(0, 15)
-)
-
-
-# ==========================================================
-# FITNESS TAB
-# ==========================================================
-
-fitness_tab = tk.Frame(
-    notebook,
-    bg="white"
-)
-
-notebook.add(
-    fitness_tab,
-    text="Fitness"
-)
-
-
-fitness_container = tk.Frame(
-    fitness_tab,
-    bg="white"
-)
-
-fitness_container.pack(
-    fill="both",
-    expand=True,
-    padx=5,
-    pady=10
-)
-
-
-fitness_title = tk.Label(
-    fitness_container,
-    text="Fitness",
-    font=("Segoe UI", 28, "bold"),
-    bg="white",
-    fg="#171717"
-)
-
-fitness_title.pack(
-    anchor="w",
-    pady=(0, 5)
-)
-
-
-fitness_subtitle = tk.Label(
-    fitness_container,
-    text="Keep track of what you achieved.",
-    font=("Segoe UI", 11),
-    bg="white",
-    fg="#888888"
-)
-
-fitness_subtitle.pack(
-    anchor="w",
-    pady=(0, 22)
-)
-
-
-# ==========================================================
-# FITNESS INPUT
-# ==========================================================
-
-fitness_input_frame = tk.Frame(
-    fitness_container,
-    bg="white"
-)
-
-fitness_input_frame.pack(
-    fill="x",
-    pady=(0, 20)
-)
-
-
-fitness_entry = tk.Entry(
-    fitness_input_frame,
-    font=("Segoe UI", 13),
-    relief="solid",
-    bd=1
-)
-
-fitness_entry.pack(
-    side="left",
-    fill="x",
-    expand=True,
-    ipady=10
-)
-
-
-fitness_button = tk.Button(
-    fitness_input_frame,
-    text="Log",
-    command=add_fitness,
-    font=("Segoe UI", 10, "bold"),
-    bg="#222222",
-    fg="white",
-    activebackground="#444444",
-    activeforeground="white",
-    relief="flat",
-    padx=22,
-    pady=9
-)
-
-fitness_button.pack(
-    side="left",
-    padx=(10, 0)
-)
-
-
-fitness_hint = tk.Label(
-    fitness_container,
-    text="Examples: Bench 60kg × 8  •  Run 5km  •  Squat 80kg × 5",
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#aaaaaa"
-)
-
-fitness_hint.pack(
-    anchor="w",
-    pady=(0, 15)
-)
-
-
-# ==========================================================
-# FITNESS LIST
-# ==========================================================
-
-fitness_list = tk.Listbox(
-    fitness_container,
-    font=("Segoe UI", 12),
-    bg="white",
-    fg="#444444",
-    selectbackground="#eeeeee",
-    selectforeground="#222222",
-    highlightthickness=0,
-    relief="flat",
-    bd=0,
-    activestyle="none",
-    height=15
-)
-
-fitness_list.pack(
-    fill="both",
-    expand=True
-)
-
-
-# ==========================================================
-# FITNESS FOOTER
-# ==========================================================
-
-fitness_footer = tk.Frame(
-    fitness_container,
-    bg="white"
-)
-
-fitness_footer.pack(
-    fill="x",
-    pady=(12, 0)
-)
-
-
-fitness_count_label = tk.Label(
-    fitness_footer,
-    text="0 workout entries",
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#999999"
-)
-
-fitness_count_label.pack(
-    side="left"
-)
-
-
-delete_fitness_button = tk.Button(
-    fitness_footer,
-    text="Delete selected",
-    command=delete_fitness,
-    font=("Segoe UI", 9),
-    bg="white",
-    fg="#555555",
-    activebackground="#eeeeee",
-    relief="flat",
-    bd=0
-)
-
-delete_fitness_button.pack(
-    side="right"
-)
-
-
-# ==========================================================
-# KEYBOARD SHORTCUTS
-# ==========================================================
-
-# Add todo with Enter
-todo_entry.bind(
-    "<Return>",
-    add_todo
-)
-
-# Complete active task with Enter
-todo_list.bind(
-    "<Return>",
-    complete_selected
-)
-
-# Complete active task with double click
-todo_list.bind(
-    "<Double-Button-1>",
-    complete_selected
-)
-
-# Re-open completed task with Enter
-completed_list.bind(
-    "<Return>",
-    uncomplete_selected
-)
-
-# Re-open completed task with double click
-completed_list.bind(
-    "<Double-Button-1>",
-    uncomplete_selected
-)
-
-# Delete selected task
-window.bind(
-    "<Delete>",
-    delete_selected
-)
-
-# Edit active task with Ctrl + E
-window.bind(
-    "<Control-e>",
-    edit_selected
-)
-
-# Search with Enter
-search_entry.bind(
-    "<Return>",
-    search_todos
-)
-
-# Add fitness with Enter
-fitness_entry.bind(
-    "<Return>",
-    add_fitness
-)
-
-# Delete fitness entry
-fitness_list.bind(
-    "<Delete>",
-    delete_fitness
-)
-
-
-# ==========================================================
-# STARTUP
-# ==========================================================
-
-enable_startup()
-
-refresh_todos()
-
-refresh_fitness()
-
-todo_entry.focus()
-
-
-# ==========================================================
-# RUN
-# ==========================================================
-
-window.mainloop()
+</body>
+</html>
