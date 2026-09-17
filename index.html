@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +19,7 @@ body {
 }
 
 .container {
-    max-width: 700px;
+    max-width: 1250px;
     margin: 0 auto;
     padding: 40px 25px;
 }
@@ -60,6 +61,35 @@ h1 {
     margin-bottom: 25px;
 }
 
+/* TWO TODO LISTS */
+
+.todo-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.todo-panel {
+    padding: 25px;
+    border-radius: 10px;
+    background: white;
+}
+
+.todo-panel.light {
+    background: #f7f7f7;
+}
+
+.todo-panel h2 {
+    margin: 0 0 5px;
+    font-size: 24px;
+}
+
+.todo-panel .panel-subtitle {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
 .input-row {
     display: flex;
     gap: 10px;
@@ -72,10 +102,7 @@ input {
     font-size: 16px;
     border: 1px solid #ddd;
     border-radius: 5px;
-}
-
-button {
-    cursor: pointer;
+    min-width: 0;
 }
 
 .add {
@@ -87,7 +114,8 @@ button {
 }
 
 .search {
-    margin-bottom: 25px;
+    width: 100%;
+    margin-bottom: 20px;
 }
 
 .section-title {
@@ -100,17 +128,19 @@ button {
     align-items: center;
     gap: 10px;
     padding: 10px 0;
-    border-bottom: 1px solid #f1f1f1;
+    border-bottom: 1px solid #eee;
 }
 
 .todo span {
     flex: 1;
+    word-break: break-word;
 }
 
 .todo button {
     border: none;
     background: none;
     color: #999;
+    white-space: nowrap;
 }
 
 .completed {
@@ -125,6 +155,12 @@ button {
     font-size: 13px;
 }
 
+.footer button {
+    border: none;
+    background: none;
+    color: #777;
+}
+
 .hidden {
     display: none;
 }
@@ -132,6 +168,23 @@ button {
 .fitness-entry {
     padding: 12px 0;
     border-bottom: 1px solid #eee;
+}
+
+.fitness-entry button {
+    float: right;
+    border: none;
+    background: none;
+    color: #999;
+}
+
+@media (max-width: 750px) {
+    .todo-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 25px 15px;
+    }
 }
 </style>
 </head>
@@ -143,55 +196,143 @@ button {
     <div class="date" id="date"></div>
 
     <div class="tabs">
-        <button class="tab active" onclick="showTab('todos')">Todos</button>
-        <button class="tab" onclick="showTab('fitness')">Fitness</button>
+        <button class="tab active" onclick="showTab('todos', this)">Todos</button>
+        <button class="tab" onclick="showTab('fitness', this)">Fitness</button>
     </div>
 
-    <!-- TODOS -->
+
+    <!-- =====================================================
+         TODOS
+         ===================================================== -->
 
     <div id="todosTab">
 
-        <h1>My Todos</h1>
-        <div class="subtitle">What needs to get done?</div>
+        <div class="todo-columns">
 
-        <div class="input-row">
-            <input id="todoInput" placeholder="Add a task...">
-            <button class="add" onclick="addTodo()">Add</button>
-        </div>
+            <!-- LEFT TODO LIST -->
 
-        <input
-            id="searchInput"
-            class="search"
-            placeholder="Search..."
-            oninput="renderTodos()"
-        >
+            <div class="todo-panel">
 
-        <div class="section-title">Tasks</div>
+                <h2>My Todos</h2>
+                <div class="panel-subtitle">
+                    What needs to get done?
+                </div>
 
-        <div id="todoList"></div>
+                <div class="input-row">
+                    <input
+                        id="todoInputLeft"
+                        placeholder="Add a task..."
+                    >
+                    <button
+                        class="add"
+                        onclick="addTodo('todoInputLeft')"
+                    >
+                        Add
+                    </button>
+                </div>
 
-        <div class="section-title">Completed</div>
+                <input
+                    id="searchInputLeft"
+                    class="search"
+                    placeholder="Search..."
+                    oninput="renderTodos()"
+                >
 
-        <div id="completedList"></div>
+                <div class="section-title">Tasks</div>
 
-        <div class="footer">
-            <span id="count"></span>
-            <button onclick="clearCompleted()">Clear completed</button>
+                <div id="todoListLeft"></div>
+
+                <div class="section-title">Completed</div>
+
+                <div id="completedListLeft"></div>
+
+                <div class="footer">
+                    <span id="countLeft"></span>
+
+                    <button onclick="clearCompleted()">
+                        Clear completed
+                    </button>
+                </div>
+
+            </div>
+
+
+            <!-- RIGHT TODO LIST -->
+
+            <div class="todo-panel light">
+
+                <h2>My Todos</h2>
+                <div class="panel-subtitle">
+                    What needs to get done?
+                </div>
+
+                <div class="input-row">
+                    <input
+                        id="todoInputRight"
+                        placeholder="Add a task..."
+                    >
+                    <button
+                        class="add"
+                        onclick="addTodo('todoInputRight')"
+                    >
+                        Add
+                    </button>
+                </div>
+
+                <input
+                    id="searchInputRight"
+                    class="search"
+                    placeholder="Search..."
+                    oninput="renderTodos()"
+                >
+
+                <div class="section-title">Tasks</div>
+
+                <div id="todoListRight"></div>
+
+                <div class="section-title">Completed</div>
+
+                <div id="completedListRight"></div>
+
+                <div class="footer">
+                    <span id="countRight"></span>
+
+                    <button onclick="clearCompleted()">
+                        Clear completed
+                    </button>
+                </div>
+
+            </div>
+
         </div>
 
     </div>
 
 
-    <!-- FITNESS -->
+    <!-- =====================================================
+         FITNESS
+         ===================================================== -->
 
     <div id="fitnessTab" class="hidden">
 
         <h1>Fitness</h1>
-        <div class="subtitle">Keep track of what you achieved.</div>
+
+        <div class="subtitle">
+            Keep track of what you achieved.
+        </div>
 
         <div class="input-row">
-            <input id="fitnessInput" placeholder="e.g. Bench 60kg × 8">
-            <button class="add" onclick="addFitness()">Log</button>
+            <input
+                id="fitnessInput"
+                placeholder="e.g. Bench 60kg × 8"
+            >
+
+            <button
+                class="add"
+                onclick="addFitness()"
+            >
+                Log
+            </button>
         </div>
 
         <div id="fitnessList"></div>
@@ -205,22 +346,33 @@ button {
 </div>
 
 
+<!-- =========================================================
+     SUPABASE
+     ========================================================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 
-/* =========================================================
-   SUPABASE
-   ========================================================= */
+const SUPABASE_URL =
+    "PASTE YOUR PROJECT URL HERE";
 
-const SUPABASE_URL = "https://irfxcecruqjtzrxyzmxk.supabase.co";
-
-const SUPABASE_KEY = "sb_publishable_FVuQJxc6wVNA9ZTP8rMeXA_vULIdzDx";
+const SUPABASE_KEY =
+    "PASTE YOUR PUBLISHABLE KEY HERE";
 
 const db = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
+
+
+/* =========================================================
+   DATA
+   ========================================================= */
+
+let todos = [];
+
+let fitnessLogs = [];
 
 
 /* =========================================================
@@ -243,24 +395,34 @@ document.getElementById("date").textContent =
    TABS
    ========================================================= */
 
-function showTab(tab) {
+function showTab(tab, button) {
 
-    document.getElementById("todosTab")
-        .classList.toggle("hidden", tab !== "todos");
+    document
+        .getElementById("todosTab")
+        .classList.toggle(
+            "hidden",
+            tab !== "todos"
+        );
 
-    document.getElementById("fitnessTab")
-        .classList.toggle("hidden", tab !== "fitness");
+    document
+        .getElementById("fitnessTab")
+        .classList.toggle(
+            "hidden",
+            tab !== "fitness"
+        );
 
-    document.querySelectorAll(".tab").forEach(button => {
-        button.classList.remove("active");
-    });
+    document
+        .querySelectorAll(".tab")
+        .forEach(btn => {
+            btn.classList.remove("active");
+        });
 
-    event.target.classList.add("active");
+    button.classList.add("active");
 }
 
 
 /* =========================================================
-   TODOS
+   LOAD TODOS
    ========================================================= */
 
 async function loadTodos() {
@@ -268,83 +430,166 @@ async function loadTodos() {
     const { data, error } = await db
         .from("todos")
         .select("*")
-        .order("created_at", { ascending: true });
+        .order(
+            "created_at",
+            { ascending: true }
+        );
 
     if (error) {
         console.error(error);
         return;
     }
 
-    window.todos = data;
+    todos = data;
 
     renderTodos();
 }
 
 
+/* =========================================================
+   RENDER BOTH LISTS
+   ========================================================= */
+
 function renderTodos() {
 
-    const list = document.getElementById("todoList");
-    const completed = document.getElementById("completedList");
+    const searchLeft =
+        document
+            .getElementById("searchInputLeft")
+            .value
+            .toLowerCase();
 
-    list.innerHTML = "";
-    completed.innerHTML = "";
+    const searchRight =
+        document
+            .getElementById("searchInputRight")
+            .value
+            .toLowerCase();
 
-    const search =
-        document.getElementById("searchInput")
-        .value
-        .toLowerCase();
+
+    renderTodoList(
+        "todoListLeft",
+        "completedListLeft",
+        "countLeft",
+        searchLeft
+    );
+
+    renderTodoList(
+        "todoListRight",
+        "completedListRight",
+        "countRight",
+        searchRight
+    );
+}
+
+
+function renderTodoList(
+    activeId,
+    completedId,
+    countId,
+    search
+) {
+
+    const activeList =
+        document.getElementById(activeId);
+
+    const completedList =
+        document.getElementById(completedId);
+
+    activeList.innerHTML = "";
+
+    completedList.innerHTML = "";
 
     let activeCount = 0;
 
-    window.todos
+
+    todos
         .filter(todo =>
-            todo.text.toLowerCase().includes(search)
+            todo.text
+                .toLowerCase()
+                .includes(search)
         )
         .forEach(todo => {
 
-            const row = document.createElement("div");
+            const row =
+                document.createElement("div");
+
             row.className = "todo";
+
 
             if (todo.completed) {
 
                 row.classList.add("completed");
 
                 row.innerHTML = `
-                    <span>✓ ${escapeHtml(todo.text)}</span>
-                    <button onclick="uncompleteTodo(${todo.id})">Undo</button>
-                    <button onclick="deleteTodo(${todo.id})">Delete</button>
+                    <span>
+                        ✓ ${escapeHtml(todo.text)}
+                    </span>
+
+                    <button
+                        onclick="uncompleteTodo(${todo.id})"
+                    >
+                        Undo
+                    </button>
+
+                    <button
+                        onclick="deleteTodo(${todo.id})"
+                    >
+                        Delete
+                    </button>
                 `;
 
-                completed.appendChild(row);
+                completedList.appendChild(row);
 
             } else {
 
                 activeCount++;
 
                 row.innerHTML = `
-                    <span>○ ${escapeHtml(todo.text)}</span>
-                    <button onclick="completeTodo(${todo.id})">Done</button>
-                    <button onclick="deleteTodo(${todo.id})">Delete</button>
+                    <span>
+                        ○ ${escapeHtml(todo.text)}
+                    </span>
+
+                    <button
+                        onclick="completeTodo(${todo.id})"
+                    >
+                        Done
+                    </button>
+
+                    <button
+                        onclick="deleteTodo(${todo.id})"
+                    >
+                        Delete
+                    </button>
                 `;
 
-                list.appendChild(row);
+                activeList.appendChild(row);
             }
         });
 
-    document.getElementById("count").textContent =
-        activeCount + (activeCount === 1
-            ? " task remaining"
-            : " tasks remaining");
+
+    document.getElementById(countId).textContent =
+        activeCount +
+        (
+            activeCount === 1
+                ? " task remaining"
+                : " tasks remaining"
+        );
 }
 
 
-async function addTodo() {
+/* =========================================================
+   ADD TODO
+   ========================================================= */
 
-    const input = document.getElementById("todoInput");
+async function addTodo(inputId) {
 
-    const text = input.value.trim();
+    const input =
+        document.getElementById(inputId);
+
+    const text =
+        input.value.trim();
 
     if (!text) return;
+
 
     const { error } = await db
         .from("todos")
@@ -353,11 +598,16 @@ async function addTodo() {
             completed: false
         });
 
+
     if (error) {
+
         console.error(error);
+
         alert("Could not add todo.");
+
         return;
     }
+
 
     input.value = "";
 
@@ -365,45 +615,85 @@ async function addTodo() {
 }
 
 
+/* =========================================================
+   COMPLETE
+   ========================================================= */
+
 async function completeTodo(id) {
 
-    await db
+    const { error } = await db
         .from("todos")
-        .update({ completed: true })
+        .update({
+            completed: true
+        })
         .eq("id", id);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
 
     await loadTodos();
 }
 
+
+/* =========================================================
+   UNCOMPLETE
+   ========================================================= */
 
 async function uncompleteTodo(id) {
 
-    await db
+    const { error } = await db
         .from("todos")
-        .update({ completed: false })
+        .update({
+            completed: false
+        })
         .eq("id", id);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
 
     await loadTodos();
 }
 
+
+/* =========================================================
+   DELETE
+   ========================================================= */
 
 async function deleteTodo(id) {
 
-    await db
+    const { error } = await db
         .from("todos")
         .delete()
         .eq("id", id);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
 
     await loadTodos();
 }
 
 
+/* =========================================================
+   CLEAR COMPLETED
+   ========================================================= */
+
 async function clearCompleted() {
 
-    await db
+    const { error } = await db
         .from("todos")
         .delete()
         .eq("completed", true);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
 
     await loadTodos();
 }
@@ -418,14 +708,19 @@ async function loadFitness() {
     const { data, error } = await db
         .from("fitness_logs")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order(
+            "created_at",
+            { ascending: false }
+        );
 
     if (error) {
+
         console.error(error);
+
         return;
     }
 
-    window.fitnessLogs = data;
+    fitnessLogs = data;
 
     renderFitness();
 }
@@ -438,51 +733,77 @@ function renderFitness() {
 
     list.innerHTML = "";
 
-    window.fitnessLogs.forEach(log => {
+
+    fitnessLogs.forEach(log => {
 
         const row =
             document.createElement("div");
 
-        row.className = "fitness-entry";
+        row.className =
+            "fitness-entry";
 
-        row.innerHTML =
-            `${log.date} — ${escapeHtml(log.text)}
-             <button onclick="deleteFitness(${log.id})">
-             Delete
-             </button>`;
+        row.innerHTML = `
+            ${log.date} —
+            ${escapeHtml(log.text)}
+
+            <button
+                onclick="deleteFitness(${log.id})"
+            >
+                Delete
+            </button>
+        `;
 
         list.appendChild(row);
     });
 
-    document.getElementById("fitnessCount").textContent =
-        window.fitnessLogs.length +
-        (window.fitnessLogs.length === 1
-            ? " workout entry"
-            : " workout entries");
+
+    document.getElementById(
+        "fitnessCount"
+    ).textContent =
+        fitnessLogs.length +
+        (
+            fitnessLogs.length === 1
+                ? " workout entry"
+                : " workout entries"
+        );
 }
 
 
 async function addFitness() {
 
     const input =
-        document.getElementById("fitnessInput");
+        document.getElementById(
+            "fitnessInput"
+        );
 
-    const text = input.value.trim();
+    const text =
+        input.value.trim();
 
     if (!text) return;
+
 
     const { error } = await db
         .from("fitness_logs")
         .insert({
-            date: new Date().toLocaleDateString("en-GB"),
+            date:
+                new Date()
+                    .toLocaleDateString("en-GB"),
+
             text: text
         });
 
+
     if (error) {
+
         console.error(error);
-        alert("Could not save fitness entry.");
+
+        alert(
+            "Could not save fitness entry."
+        );
+
         return;
     }
+
 
     input.value = "";
 
@@ -492,10 +813,17 @@ async function addFitness() {
 
 async function deleteFitness(id) {
 
-    await db
+    const { error } = await db
         .from("fitness_logs")
         .delete()
         .eq("id", id);
+
+    if (error) {
+
+        console.error(error);
+
+        return;
+    }
 
     await loadFitness();
 }
@@ -507,7 +835,8 @@ async function deleteFitness(id) {
 
 function escapeHtml(text) {
 
-    const div = document.createElement("div");
+    const div =
+        document.createElement("div");
 
     div.textContent = text;
 
@@ -519,33 +848,51 @@ function escapeHtml(text) {
    ENTER KEY
    ========================================================= */
 
-document.getElementById("todoInput")
-    .addEventListener("keydown", event => {
+document
+    .getElementById("todoInputLeft")
+    .addEventListener(
+        "keydown",
+        event => {
 
-        if (event.key === "Enter") {
-            addTodo();
+            if (event.key === "Enter") {
+                addTodo("todoInputLeft");
+            }
+
         }
+    );
 
-    });
 
+document
+    .getElementById("todoInputRight")
+    .addEventListener(
+        "keydown",
+        event => {
 
-document.getElementById("fitnessInput")
-    .addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                addTodo("todoInputRight");
+            }
 
-        if (event.key === "Enter") {
-            addFitness();
         }
+    );
 
-    });
+
+document
+    .getElementById("fitnessInput")
+    .addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key === "Enter") {
+                addFitness();
+            }
+
+        }
+    );
 
 
 /* =========================================================
    START
    ========================================================= */
-
-window.todos = [];
-
-window.fitnessLogs = [];
 
 loadTodos();
 
@@ -555,3 +902,4 @@ loadFitness();
 
 </body>
 </html>
+```
