@@ -23,7 +23,6 @@ h1 { font-size: 32px; margin: 0 0 5px; }
 input { flex: 1; padding: 13px; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; min-width: 0; }
 .add { background: #222; color: white; border: none; border-radius: 5px; padding: 0 22px; cursor: pointer; }
 .add:hover { background: #444; }
-.search { width: 100%; margin-bottom: 20px; }
 .section-title { font-weight: bold; margin: 20px 0 8px; }
 .todo { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
 .todo span { flex: 1; word-break: break-word; }
@@ -46,25 +45,23 @@ input { flex: 1; padding: 13px; font-size: 16px; border: 1px solid #ddd; border-
     <div id="todosTab">
         <div class="todo-columns">
             <div class="todo-panel">
-                <h2>My Todos</h2>
+                <h2>Beauty Queen's ToDo</h2>
                 <div class="panel-subtitle">What needs to get done?</div>
                 <div class="input-row">
                     <input id="todoInputLeft" placeholder="Add a task...">
                     <button class="add" type="button" onclick="addTodo('todoInputLeft', 'left')">Add</button>
                 </div>
-                <input id="searchInputLeft" class="search" placeholder="Search..." oninput="renderTodos()">
                 <div class="section-title">Tasks</div><div id="todoListLeft"></div>
                 <div class="section-title">Completed</div><div id="completedListLeft"></div>
                 <div class="footer"><span id="countLeft"></span><button type="button" onclick="clearCompleted('left')">Clear completed</button></div>
             </div>
             <div class="todo-panel light">
-                <h2>My Todos</h2>
+                <h2>Honorable Knight's ToDo</h2>
                 <div class="panel-subtitle">What needs to get done?</div>
                 <div class="input-row">
                     <input id="todoInputRight" placeholder="Add a task...">
                     <button class="add" type="button" onclick="addTodo('todoInputRight', 'right')">Add</button>
                 </div>
-                <input id="searchInputRight" class="search" placeholder="Search..." oninput="renderTodos()">
                 <div class="section-title">Tasks</div><div id="todoListRight"></div>
                 <div class="section-title">Completed</div><div id="completedListRight"></div>
                 <div class="footer"><span id="countRight"></span><button type="button" onclick="clearCompleted('right')">Clear completed</button></div>
@@ -99,7 +96,6 @@ async function loadTodos() {
     if (db) {
         const { data, error } = await db.from("todos").select("*").order("created_at", { ascending: true });
         if (error) { console.error(error); return; }
-        // Older items without a list are kept on the left instead of appearing twice.
         todos = (data || []).map(todo => ({ ...todo, list: todo.list || "left" }));
     } else {
         todos = localItems(todoStorageKey).map(todo => ({ ...todo, list: todo.list || "left" }));
@@ -108,13 +104,13 @@ async function loadTodos() {
     renderTodos();
 }
 function renderTodos() {
-    renderTodoList("todoListLeft", "completedListLeft", "countLeft", document.getElementById("searchInputLeft").value.toLowerCase(), "left");
-    renderTodoList("todoListRight", "completedListRight", "countRight", document.getElementById("searchInputRight").value.toLowerCase(), "right");
+    renderTodoList("todoListLeft", "completedListLeft", "countLeft", "", "left");
+    renderTodoList("todoListRight", "completedListRight", "countRight", "", "right");
 }
 function renderTodoList(activeId, completedId, countId, search, list) {
     const activeList = document.getElementById(activeId), completedList = document.getElementById(completedId);
     activeList.innerHTML = ""; completedList.innerHTML = ""; let activeCount = 0;
-    todos.filter(todo => (todo.list || "left") === list && String(todo.text || "").toLowerCase().includes(search)).forEach(todo => {
+    todos.filter(todo => (todo.list || "left") === list && String(todo.text || "").toLowerCase().includes(search.toLowerCase())).forEach(todo => {
         const row = document.createElement("div"); row.className = "todo";
         const text = document.createElement("span"); text.textContent = (todo.completed ? "✓ " : "○ ") + todo.text; row.appendChild(text);
         if (todo.completed) { row.classList.add("completed"); addButton(row, "Undo", () => uncompleteTodo(todo.id)); completedList.appendChild(row); }
