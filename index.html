@@ -50,24 +50,24 @@ input { flex: 1; padding: 13px; font-size: 16px; border: 1px solid #ddd; border-
                 <div class="panel-subtitle">What needs to get done?</div>
                 <div class="input-row">
                     <input id="todoInputLeft" placeholder="Add a task...">
-                    <button class="add" type="button" onclick="addTodo('todoInputLeft')">Add</button>
+                    <button class="add" type="button" onclick="addTodo('todoInputLeft', 'left')">Add</button>
                 </div>
                 <input id="searchInputLeft" class="search" placeholder="Search..." oninput="renderTodos()">
                 <div class="section-title">Tasks</div><div id="todoListLeft"></div>
                 <div class="section-title">Completed</div><div id="completedListLeft"></div>
-                <div class="footer"><span id="countLeft"></span><button type="button" onclick="clearCompleted()">Clear completed</button></div>
+                <div class="footer"><span id="countLeft"></span><button type="button" onclick="clearCompleted('left')">Clear completed</button></div>
             </div>
             <div class="todo-panel light">
                 <h2>My Todos</h2>
                 <div class="panel-subtitle">What needs to get done?</div>
                 <div class="input-row">
                     <input id="todoInputRight" placeholder="Add a task...">
-                    <button class="add" type="button" onclick="addTodo('todoInputRight')">Add</button>
+                    <button class="add" type="button" onclick="addTodo('todoInputRight', 'right')">Add</button>
                 </div>
                 <input id="searchInputRight" class="search" placeholder="Search..." oninput="renderTodos()">
                 <div class="section-title">Tasks</div><div id="todoListRight"></div>
                 <div class="section-title">Completed</div><div id="completedListRight"></div>
-                <div class="footer"><span id="countRight"></span><button type="button" onclick="clearCompleted()">Clear completed</button></div>
+                <div class="footer"><span id="countRight"></span><button type="button" onclick="clearCompleted('right')">Clear completed</button></div>
             </div>
         </div>
     </div>
@@ -98,18 +98,23 @@ function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)
 async function loadTodos() {
     if (db) {
         const { data, error } = await db.from("todos").select("*").order("created_at", { ascending: true });
-        if (error) { console.error(error); return; } todos = data || [];
-    } else todos = localItems(todoStorageKey);
+        if (error) { console.error(error); return; }
+        // Older items without a list are kept on the left instead of appearing twice.
+        todos = (data || []).map(todo => ({ ...todo, list: todo.list || "left" }));
+    } else {
+        todos = localItems(todoStorageKey).map(todo => ({ ...todo, list: todo.list || "left" }));
+        saveLocal(todoStorageKey, todos);
+    }
     renderTodos();
 }
 function renderTodos() {
-    renderTodoList("todoListLeft", "completedListLeft", "countLeft", document.getElementById("searchInputLeft").value.toLowerCase());
-    renderTodoList("todoListRight", "completedListRight", "countRight", document.getElementById("searchInputRight").value.toLowerCase());
+    renderTodoList("todoListLeft", "completedListLeft", "countLeft", document.getElementById("searchInputLeft").value.toLowerCase(), "left");
+    renderTodoList("todoListRight", "completedListRight", "countRight", document.getElementById("searchInputRight").value.toLowerCase(), "right");
 }
-function renderTodoList(activeId, completedId, countId, search) {
+function renderTodoList(activeId, completedId, countId, search, list) {
     const activeList = document.getElementById(activeId), completedList = document.getElementById(completedId);
     activeList.innerHTML = ""; completedList.innerHTML = ""; let activeCount = 0;
-    todos.filter(todo => String(todo.text || "").toLowerCase().includes(search)).forEach(todo => {
+    todos.filter(todo => (todo.list || "left") === list && String(todo.text || "").toLowerCase().includes(search)).forEach(todo => {
         const row = document.createElement("div"); row.className = "todo";
         const text = document.createElement("span"); text.textContent = (todo.completed ? "✓ " : "○ ") + todo.text; row.appendChild(text);
         if (todo.completed) { row.classList.add("completed"); addButton(row, "Undo", () => uncompleteTodo(todo.id)); completedList.appendChild(row); }
@@ -119,10 +124,10 @@ function renderTodoList(activeId, completedId, countId, search) {
     document.getElementById(countId).textContent = activeCount + (activeCount === 1 ? " task remaining" : " tasks remaining");
 }
 function addButton(parent, label, action) { const button = document.createElement("button"); button.type = "button"; button.textContent = label; button.onclick = action; parent.appendChild(button); }
-async function addTodo(inputId) {
+async function addTodo(inputId, list) {
     const input = document.getElementById(inputId), text = input.value.trim(); if (!text) return;
-    if (db) { const { error } = await db.from("todos").insert({ text, completed: false }); if (error) { console.error(error); alert("Could not add todo."); return; } }
-    else { todos.push({ id: Date.now(), text, completed: false }); saveLocal(todoStorageKey, todos); }
+    if (db) { const { error } = await db.from("todos").insert({ text, completed: false, list }); if (error) { console.error(error); alert("Could not add todo."); return; } }
+    else { todos.push({ id: Date.now(), text, completed: false, list }); saveLocal(todoStorageKey, todos); }
     input.value = ""; await loadTodos();
 }
 async function updateTodo(id, completed) {
@@ -137,9 +142,9 @@ async function deleteTodo(id) {
     else { todos = todos.filter(todo => todo.id !== id); saveLocal(todoStorageKey, todos); }
     await loadTodos();
 }
-async function clearCompleted() {
-    if (db) { const { error } = await db.from("todos").delete().eq("completed", true); if (error) { console.error(error); return; } }
-    else { todos = todos.filter(todo => !todo.completed); saveLocal(todoStorageKey, todos); }
+async function clearCompleted(list) {
+    if (db) { const { error } = await db.from("todos").delete().eq("completed", true).eq("list", list); if (error) { console.error(error); return; } }
+    else { todos = todos.filter(todo => !(todo.completed && (todo.list || "left") === list)); saveLocal(todoStorageKey, todos); }
     await loadTodos();
 }
 async function loadFitness() {
@@ -164,7 +169,7 @@ async function deleteFitness(id) {
     else { fitnessLogs = fitnessLogs.filter(log => log.id !== id); saveLocal(fitnessStorageKey, fitnessLogs); }
     await loadFitness();
 }
-["todoInputLeft", "todoInputRight"].forEach(id => document.getElementById(id).addEventListener("keydown", event => { if (event.key === "Enter") addTodo(id); }));
+["todoInputLeft", "todoInputRight"].forEach(id => document.getElementById(id).addEventListener("keydown", event => { if (event.key === "Enter") addTodo(id, id === "todoInputLeft" ? "left" : "right"); }));
 document.getElementById("fitnessInput").addEventListener("keydown", event => { if (event.key === "Enter") addFitness(); });
 loadTodos(); loadFitness();
 </script>
