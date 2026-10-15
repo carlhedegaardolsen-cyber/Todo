@@ -95,7 +95,7 @@ function renderTodoList(activeId, completedId, countId, list) {
 function addButton(parent, label, action) { const button = document.createElement("button"); button.type = "button"; button.textContent = label; button.onclick = action; parent.appendChild(button); }
 async function addTodo(inputId, list) {
     const input = document.getElementById(inputId), text = input.value.trim(); if (!text) return;
-    if (db) { const { error } = await db.from("todos").insert({ text, completed: false, list }); if (error) { console.error("Adding todo failed:", error); alert("Could not add todo: " + error.message); return; } }
+    if (db) { const { error } = await db.from("todos").insert({ task: text, text, completed: false, list, category: list }); if (error) { console.error("Adding todo failed:", error); alert("Could not add todo: " + error.message); return; } }
     else { todos.push({ id: Date.now(), text, completed: false, list }); saveLocal(todoStorageKey, todos); }
     input.value = ""; await loadTodos();
 }
